@@ -27,7 +27,7 @@ class BillResult:
     total_payable: float
 
 # Official Tariff Data
-# - 2026 Q1
+# - 2026 Q1, Q2
 # - 2025 Q2, Q3, Q4
 # - 2024 Q1, Q2, Q3
 # - 2023 Q1 (Feb), Q2 (Jun), Q3 (Sep), Q4 (Dec) Added
@@ -37,6 +37,10 @@ SUPABASE_TABLE = os.getenv("SUPABASE_TABLE", "tariffs")
 
 DEFAULT_TARIFFS = {
     "2026": {
+        "QUARTER 2 (APR)": {
+            "rates": {"RES_LIFELINE": 0.8690, "RES_B1": 1.968825, "RES_B2": 2.601481, "NONRES_B1": 1.777539, "NONRES_B2": 2.164873, "SLT_LV": 2.321130, "SLT_MV": 2.016000, "SLT_MV2": 1.320448, "SLT_HV": 1.821228},
+            "service": {"Lifeline": 2.13, "Other": 10.730886, "NonRes": 12.428245, "SLT": 500.00}
+        }, 
         "QUARTER 1 (JAN)": {
             "rates": {"RES_LIFELINE": 0.8837, "RES_B1": 2.0022, "RES_B2": 2.6456, "NONRES_B1": 1.8076, "NONRES_B2": 2.2465, "SLT_LV": 2.6978, "SLT_MV": 2.1534, "SLT_MV2": 1.3428, "SLT_HV": 2.1534},
             "service": {"Lifeline": 2.13, "Other": 10.7308, "NonRes": 12.4282, "SLT": 500.00}
