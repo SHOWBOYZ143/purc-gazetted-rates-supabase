@@ -195,7 +195,30 @@ DEFAULT_TARIFFS = {
             }
         }
     },
-    "2022": {}
+    "2022": {
+    "QUARTER 3 (SEP)": {
+        "rates": {
+            "RES_LIFELINE": 0.419065,
+            "RES_B1": 0.890422,
+            "RES_B2": 1.155595,
+            "RES_B3": 1.283995,
+            "NONRES_B1": 0.837841,
+            "NONRES_B2": 0.891552,
+            "NONRES_B3": 1.330919,
+            "SLT_LV": 1.326125,
+            "SLT_MV": 1.006863,
+            "SLT_HV": 1.056746,
+            "SLT_HV_STEEL": 0.745315,
+            "SLT_HV_MINES": 2.639705
+        },
+        "service": {
+            "Lifeline": 2.13,
+            "Other": 10.730886,
+            "NonRes": 12.428245,
+            "SLT": 500.00
+        }
+    }
+}
 }
 
 def _supabase_headers(prefer: str = ""):
@@ -294,7 +317,7 @@ def get_img_as_base64(file_path):
     return None
 
 def calculate_bill(year, quarter, category, kwh) -> BillResult:
-    if year not in ["2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
+    if year not in ["2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
     t = TARIFFS[year][quarter]
     if not t: return None
     
@@ -305,7 +328,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
     # ----------------------------
     # 2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
     # ----------------------------
-    if year == "2023":
+    if year in ["2022", "2023"]:
         if category == "Residential":
             if kwh <= RES_LIFELINE_MAX:
                 energy_total = kwh * r["RES_LIFELINE"]
@@ -440,7 +463,7 @@ with c3:
 
 with c4:
     # Dynamic Category List Logic
-    if sel_year == "2023":
+    if sel_year in ["2022", "2023"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-HV MINES"]
     else:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-MV2", "SLT-HV"]
@@ -452,7 +475,7 @@ with c5:
     calc_mode = st.radio("Mode", ["Bill from kWh", "kWh from Bill"], horizontal=True, label_visibility="collapsed")
 
 # Logic Implementation
-valid_year = sel_year in ["2023", "2024", "2025", "2026"]
+valid_year = sel_year in ["2022", "2023", "2024", "2025", "2026"]
 valid_selection = valid_year and sel_quarter != "NO DATA"
 
 if valid_selection:
