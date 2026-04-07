@@ -537,9 +537,8 @@ with c3:
 
 with c4:
     # Dynamic Category List Logic
-    if sel_year == "2021":
-    cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV MINES"]
-    if sel_year in ["2022", "2023"]:
+
+    if sel_year in ["2021", "2022", "2023"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-HV MINES"]
     else:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-MV2", "SLT-HV"]
