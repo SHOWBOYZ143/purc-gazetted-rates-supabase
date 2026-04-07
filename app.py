@@ -218,6 +218,33 @@ DEFAULT_TARIFFS = {
             "SLT": 500.00
         }
     }
+} 
+    "2021": {
+    "QUARTER 1 (JAN)": {
+        "rates": {
+            "RES_LIFELINE": 0.326060,
+            "RES_B1": 0.654161,
+            "RES_B2": 0.848974,
+            "RES_B3": 0.943304,
+            "NONRES_B1": 0.797943,
+            "NONRES_B2": 0.797943,
+            "NONRES_B3": 0.849097,
+            "NONRES_B4": 1.339765,
+            "SLT_LV": 1.047303,
+            "SLT_MV": 0.795167,
+            "SLT_HV": 0.834562,
+            "SLT_HV_MINES": 2.639705
+        },
+        "service": {
+            "Lifeline": 2.13,
+            "Other": 7.456947,
+            "NonRes": 12.428245,
+            "SLT_LV": 49.712983,
+            "SLT_MV": 69.598177,
+            "SLT_HV": 69.598177,
+            "SLT_HV_MINES": 69.598177
+        }
+    }
 }
 }
 
@@ -317,14 +344,61 @@ def get_img_as_base64(file_path):
     return None
 
 def calculate_bill(year, quarter, category, kwh) -> BillResult:
-    if year not in ["2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
+    if year not in ["2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
     t = TARIFFS[year][quarter]
     if not t: return None
     
     r, s = t["rates"], t["service"]
     energy_total = 0.0
     service = 0.0
+    
+    if year == "2021":
+        if category == "Residential":
+            if kwh <= 50:
+                energy_total = kwh * r["RES_LIFELINE"]
+                service = s["Lifeline"]
+            else:
+                b1 = min(max(0, kwh - 50), 250)
+                b2 = min(max(0, kwh - 300), 300)
+                b3 = max(0, kwh - 600)
+                energy_total = (
+                    (50 * r["RES_LIFELINE"]) +
+                    (b1 * r["RES_B1"]) +
+                    (b2 * r["RES_B2"]) +
+                    (b3 * r["RES_B3"])
+                )
+                service = s["Other"]
 
+        elif category == "Non-Residential":
+            b1 = min(kwh, 100)
+            b2 = min(max(0, kwh - 100), 200)
+            b3 = min(max(0, kwh - 300), 300)
+            b4 = max(0, kwh - 600)
+            energy_total = (
+                (b1 * r["NONRES_B1"]) +
+                (b2 * r["NONRES_B2"]) +
+                (b3 * r["NONRES_B3"]) +
+                (b4 * r["NONRES_B4"])
+            )
+            service = s["NonRes"]
+
+        else:
+            rate_key = {
+                "SLT-LV": "SLT_LV",
+                "SLT-MV": "SLT_MV",
+                "SLT-HV": "SLT_HV",
+                "SLT-HV MINES": "SLT_HV_MINES",
+            }.get(category, "SLT_LV")
+
+            service_key = {
+                "SLT-LV": "SLT_LV",
+                "SLT-MV": "SLT_MV",
+                "SLT-HV": "SLT_HV",
+                "SLT-HV MINES": "SLT_HV_MINES",
+            }.get(category, "SLT_LV")
+
+            energy_total = kwh * r[rate_key]
+            service = s[service_key]
     # ----------------------------
     # 2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
     # ----------------------------
@@ -463,6 +537,8 @@ with c3:
 
 with c4:
     # Dynamic Category List Logic
+    if sel_year == "2021":
+    cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV MINES"]
     if sel_year in ["2022", "2023"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-HV MINES"]
     else:
@@ -475,7 +551,7 @@ with c5:
     calc_mode = st.radio("Mode", ["Bill from kWh", "kWh from Bill"], horizontal=True, label_visibility="collapsed")
 
 # Logic Implementation
-valid_year = sel_year in ["2022", "2023", "2024", "2025", "2026"]
+valid_year = sel_year in ["2021", "2022", "2023", "2024", "2025", "2026"]
 valid_selection = valid_year and sel_quarter != "NO DATA"
 
 if valid_selection:
