@@ -218,7 +218,7 @@ DEFAULT_TARIFFS = {
             "SLT": 500.00
         }
     }
-} 
+},
     "2021": {
     "QUARTER 1 (JAN)": {
         "rates": {
