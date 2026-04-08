@@ -195,110 +195,213 @@ DEFAULT_TARIFFS = {
             }
         }
     },
-    "2022": {
-    "QUARTER 3 (SEP)": {
-        "rates": {
-            "RES_LIFELINE": 0.419065,
-            "RES_B1": 0.890422,
-            "RES_B2": 1.155595,
-            "RES_B3": 1.283995,
-            "NONRES_B1": 0.837841,
-            "NONRES_B2": 0.891552,
-            "NONRES_B3": 1.330919,
-            "SLT_LV": 1.326125,
-            "SLT_MV": 1.006863,
-            "SLT_HV": 1.056746,
-            "SLT_HV_STEEL": 0.745315,
-            "SLT_HV_MINES": 2.639705
+    import streamlit as st
+import base64
+import os
+import json
+import urllib.request
+import urllib.parse
+from dataclasses import dataclass
+from typing import List
+
+# ----------------------------
+# 1. CONSTANTS, MODELS & DATA
+# ----------------------------
+BLOCK_300 = 300.0
+BLOCK_600 = 600.0
+RES_LIFELINE_MAX = 30.0
+LEVY_RATE = 0.05
+TAX_RATE = 0.20
+
+@dataclass
+class BillResult:
+    year: str
+    quarter: str
+    category: str
+    energy_total: float
+    service_charge: float
+    levies_taxes_total: float
+    total_payable: float
+
+# Official Tariff Data
+# - 2026 Q1
+# - 2026 Q1, Q2
+# - 2025 Q2, Q3, Q4
+# - 2024 Q1, Q2, Q3
+# - 2023 Q1 (Feb), Q2 (Jun), Q3 (Sep), Q4 (Dec) Added
+TARIFFS = {
+# - 2022 Q3 (Sep) Added
+# - 2021 Q1 (Jan) Added
+# - 2020 Q1 (Jan) Added
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_TABLE = os.getenv("SUPABASE_TABLE", "tariffs")
+
+DEFAULT_TARIFFS = {
+    "2026": {
+        "QUARTER 2 (APR)": {
+            "rates": {"RES_LIFELINE": 0.8690, "RES_B1": 1.968825, "RES_B2": 2.601481, "NONRES_B1": 1.777539, "NONRES_B2": 2.164873, "SLT_LV": 2.321130, "SLT_MV": 2.016000, "SLT_MV2": 1.320448, "SLT_HV": 1.821228},
+            "service": {"Lifeline": 2.13, "Other": 10.730886, "NonRes": 12.428245, "SLT": 500.00}
         },
-        "service": {
-            "Lifeline": 2.13,
-            "Other": 10.730886,
-            "NonRes": 12.428245,
-            "SLT": 500.00
+        "QUARTER 1 (JAN)": {
+            "rates": {"RES_LIFELINE": 0.8837, "RES_B1": 2.0022, "RES_B2": 2.6456, "NONRES_B1": 1.8076, "NONRES_B2": 2.2465, "SLT_LV": 2.6978, "SLT_MV": 2.1534, "SLT_MV2": 1.3428, "SLT_HV": 2.1534},
+            "service": {"Lifeline": 2.13, "Other": 10.7308, "NonRes": 12.4282, "SLT": 500.00}
         }
-    }
-},
-    "2021": {
-    "QUARTER 1 (JAN)": {
-        "rates": {
-            "RES_LIFELINE": 0.326060,
-            "RES_B1": 0.654161,
-            "RES_B2": 0.848974,
-            "RES_B3": 0.943304,
-            "NONRES_B1": 0.797943,
-            "NONRES_B2": 0.797943,
-            "NONRES_B3": 0.849097,
-            "NONRES_B4": 1.339765,
-            "SLT_LV": 1.047303,
-            "SLT_MV": 0.795167,
-            "SLT_HV": 0.834562,
-            "SLT_HV_MINES": 2.639705
-        },
-        "service": {
-            "Lifeline": 2.13,
-            "Other": 7.456947,
-            "NonRes": 12.428245,
-            "SLT_LV": 49.712983,
-            "SLT_MV": 69.598177,
-            "SLT_HV": 69.598177,
-            "SLT_HV_MINES": 69.598177
-        }
-    }
-},
-    "2020": {
-    "QUARTER 1 (JAN)": {
-        "rates": {
-            "RES_LIFELINE": 0.326060,
-            "RES_B1": 0.654161,
-            "RES_B2": 0.848974,
-            "RES_B3": 0.943304,
-            "NONRES_B1": 0.797943,
-            "NONRES_B2": 0.797943,
-            "NONRES_B3": 0.849097,
-            "NONRES_B4": 1.339765,
-            "SLT_LV": 1.047303,
-            "SLT_MV": 0.795167,
-            "SLT_HV": 0.834562,
-            "SLT_HV_MINES": 2.639705
-        },
-        "service": {
-            "Lifeline": 2.13,
-            "Other": 7.456947,
-            "NonRes": 12.428245,
-            "SLT_LV": 49.712983,
-            "SLT_MV": 69.598177,
-            "SLT_HV": 69.598177,
-            "SLT_HV_MINES": 69.598177
-        }
-    }
-},
-    "QUARTER 2 (APR)": {
-    "rates": {
-        "RES_LIFELINE": 0.326060,
-        "RES_B1": 0.654161,
-        "RES_B2": 0.848974,
-        "RES_B3": 0.943304,
-        "NONRES_B1": 0.797943,
-        "NONRES_B2": 0.797943,
-        "NONRES_B3": 0.849097,
-        "NONRES_B4": 1.339765,
-        "SLT_LV": 1.047303,
-        "SLT_MV": 0.795167,
-        "SLT_HV": 0.834562,
-        "SLT_HV_MINES": 2.639705
     },
-    "service": {
-        "Lifeline": 2.13,
-        "Other": 7.456947,
-        "NonRes": 12.428245,
-        "SLT_LV": 49.712983,
-        "SLT_MV": 69.598177,
-        "SLT_HV": 69.598177,
-        "SLT_HV_MINES": 69.598177
+    "2025": {
+        "QUARTER 4 (OCT)": {
+            "rates": {"RES_LIFELINE": 0.8043, "RES_B1": 1.8224, "RES_B2": 2.4080, "NONRES_B1": 1.6453, "NONRES_B2": 2.0448, "SLT_LV": 2.4555, "SLT_MV": 1.9601, "SLT_MV2": 1.2788, "SLT_HV": 1.9601},
+            "service": {"Lifeline": 2.13, "Other": 10.7301, "NonRes": 12.428, "SLT": 500.00}
+        },
+        "QUARTER 3 (JUL)": {
+            "rates": {
+                "RES_LIFELINE": 0.795308, "RES_B1": 1.801867, "RES_B2": 2.380873,
+                "NONRES_B1": 1.626801, "NONRES_B2": 2.021723,
+                "SLT_LV": 2.427874, "SLT_MV": 1.937990, "SLT_MV2": 1.264423, "SLT_HV": 1.937990
+            },
+            "service": {"Lifeline": 2.13, "Other": 10.73088, "NonRes": 12.4282, "SLT": 500.00}
+        },
+        "QUARTER 2 (MAY)": {
+            "rates": {
+                "RES_LIFELINE": 0.776274, "RES_B1": 1.758743, "RES_B2": 2.323892,
+                "NONRES_B1": 1.587868, "NONRES_B2": 1.973338,
+                "SLT_LV": 2.369769, "SLT_MV": 1.891609, "SLT_MV2": 1.234162, "SLT_HV": 1.891609
+            },
+            "service": {"Lifeline": 2.13, "Other": 10.73088, "NonRes": 12.4182, "SLT": 500.00}
+@@ -163,105 +177,331 @@ TARIFFS = {
+            "rates": {
+                # 3-Tier Block Structure for 2023 Q1
+                "RES_LIFELINE": 54.4627 / 100,
+                "RES_B1": 115.7212 / 100, # 0-300
+                "RES_B2": 150.1837 / 100, # 301-600
+                "RES_B3": 166.8708 / 100, # 601+
+                
+                "NONRES_B1": 108.8876 / 100, # 0-300
+                "NONRES_B2": 115.8681 / 100, # 301-600
+                "NONRES_B3": 172.9692 / 100, # 601+
+                
+                "SLT_LV": 172.3461 / 100,
+                "SLT_MV": 130.8541 / 100,
+                "SLT_HV": 137.3370 / 100,
+                "SLT_HV_STEEL": 96.8627 / 100,
+                "SLT_HV_MINES": 343.0618 / 100
+            },
+            "service": {
+                "Lifeline": 213.0000 / 100,
+                "Other": 1073.0886 / 100,
+                "NonRes": 1242.8245 / 100,
+                "SLT": 50000.0000 / 100
+            }
+        }
+    },
+    "2022": {}
+    "2022": {
+        "QUARTER 3 (SEP)": {
+            "rates": {
+                "RES_LIFELINE": 0.419065,
+                "RES_B1": 0.890422,
+                "RES_B2": 1.155595,
+                "RES_B3": 1.283995,
+                "NONRES_B1": 0.837841,
+                "NONRES_B2": 0.891552,
+                "NONRES_B3": 1.330919,
+                "SLT_LV": 1.326125,
+                "SLT_MV": 1.006863,
+                "SLT_HV": 1.056746,
+                "SLT_HV_STEEL": 0.745315,
+                "SLT_HV_MINES": 2.639705
+            },
+            "service": {
+                "Lifeline": 2.13,
+                "Other": 10.730886,
+                "NonRes": 12.428245,
+                "SLT": 500.00
+            }
+        }
+    },
+    "2021": {
+        "QUARTER 1 (JAN)": {
+            "rates": {
+                "RES_LIFELINE": 0.326060,
+                "RES_B1": 0.654161,
+                "RES_B2": 0.848974,
+                "RES_B3": 0.943304,
+                "NONRES_B1": 0.797943,
+                "NONRES_B2": 0.797943,
+                "NONRES_B3": 0.849097,
+                "NONRES_B4": 1.339765,
+                "SLT_LV": 1.047303,
+                "SLT_MV": 0.795167,
+                "SLT_HV": 0.834562,
+                "SLT_HV_MINES": 2.639705
+            },
+            "service": {
+                "Lifeline": 2.13,
+                "Other": 7.456947,
+                "NonRes": 12.428245,
+                "SLT_LV": 49.712983,
+                "SLT_MV": 69.598177,
+                "SLT_HV": 69.598177,
+                "SLT_HV_MINES": 69.598177
+            }
+        }
+    },
+    "2020": {
+        "QUARTER 1 (JAN)": {
+            "rates": {
+                "RES_LIFELINE": 0.326060,
+                "RES_B1": 0.654161,
+                "RES_B2": 0.848974,
+                "RES_B3": 0.943304,
+                "NONRES_B1": 0.797943,
+                "NONRES_B2": 0.797943,
+                "NONRES_B3": 0.849097,
+                "NONRES_B4": 1.339765,
+                "SLT_LV": 1.047303,
+                "SLT_MV": 0.795167,
+                "SLT_HV": 0.834562,
+                "SLT_HV_MINES": 2.639705
+            },
+            "service": {
+                "Lifeline": 2.13,
+                "Other": 7.456947,
+                "NonRes": 12.428245,
+                "SLT_LV": 49.712983,
+                "SLT_MV": 69.598177,
+                "SLT_HV": 69.598177,
+                "SLT_HV_MINES": 69.598177
+            }
+        },
+        "QUARTER 2 (APR)": {
+            "rates": {
+                "RES_LIFELINE": 0.326060,
+                "RES_B1": 0.654161,
+                "RES_B2": 0.848974,
+                "RES_B3": 0.943304,
+                "NONRES_B1": 0.797943,
+                "NONRES_B2": 0.797943,
+                "NONRES_B3": 0.849097,
+                "NONRES_B4": 1.339765,
+                "SLT_LV": 1.047303,
+                "SLT_MV": 0.795167,
+                "SLT_HV": 0.834562,
+                "SLT_HV_MINES": 2.639705
+            },
+            "service": {
+                "Lifeline": 2.13,
+                "Other": 7.456947,
+                "NonRes": 12.428245,
+                "SLT_LV": 49.712983,
+                "SLT_MV": 69.598177,
+                "SLT_HV": 69.598177,
+                "SLT_HV_MINES": 69.598177
+            }
+        }
+    }
+
     }
 }
-}
+    
 
 def _supabase_headers(prefer: str = ""):
     headers = {
@@ -413,46 +516,33 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
                 b1 = min(max(0, kwh - 50), 250)
                 b2 = min(max(0, kwh - 300), 300)
                 b3 = max(0, kwh - 600)
-                energy_total = (
-                    (50 * r["RES_LIFELINE"]) +
-                    (b1 * r["RES_B1"]) +
-                    (b2 * r["RES_B2"]) +
-                    (b3 * r["RES_B3"])
-                )
+                energy_total = (50 * r["RES_LIFELINE"]) + (b1 * r["RES_B1"]) + (b2 * r["RES_B2"]) + (b3 * r["RES_B3"])
                 service = s["Other"]
-
         elif category == "Non-Residential":
             b1 = min(kwh, 100)
             b2 = min(max(0, kwh - 100), 200)
             b3 = min(max(0, kwh - 300), 300)
             b4 = max(0, kwh - 600)
-            energy_total = (
-                (b1 * r["NONRES_B1"]) +
-                (b2 * r["NONRES_B2"]) +
-                (b3 * r["NONRES_B3"]) +
-                (b4 * r["NONRES_B4"])
-            )
+            energy_total = (b1 * r["NONRES_B1"]) + (b2 * r["NONRES_B2"]) + (b3 * r["NONRES_B3"]) + (b4 * r["NONRES_B4"])
             service = s["NonRes"]
-
         else:
             rate_key = {
                 "SLT-LV": "SLT_LV",
                 "SLT-MV": "SLT_MV",
                 "SLT-HV": "SLT_HV",
-                "SLT-HV MINES": "SLT_HV_MINES",
+                "SLT-HV MINES": "SLT_HV_MINES"
             }.get(category, "SLT_LV")
-
+            energy_total = kwh * r[rate_key]
             service_key = {
                 "SLT-LV": "SLT_LV",
                 "SLT-MV": "SLT_MV",
                 "SLT-HV": "SLT_HV",
-                "SLT-HV MINES": "SLT_HV_MINES",
+                "SLT-HV MINES": "SLT_HV_MINES"
             }.get(category, "SLT_LV")
-
-            energy_total = kwh * r[rate_key]
             service = s[service_key]
+
     # ----------------------------
-    # 2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
+    # 2022-2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
     # ----------------------------
     elif year in ["2022", "2023"]:
         if category == "Residential":
@@ -484,7 +574,8 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
                 "SLT-MV": "SLT_MV",
                 "SLT-HV": "SLT_HV",
                 "SLT-HV STEEL COMPANIES": "SLT_HV_STEEL",
-                "SLT-HV MINES": "SLT_HV_MINES"
+                "SLT-MINES": "SLT_HV_MINES",
+                "SLT-HV MINES": "SLT_HV_MINES"  # backward compatibility
             }.get(category, "SLT_LV")
             energy_total = kwh * r[rate_key]
             service = s["SLT"]
@@ -591,7 +682,9 @@ with c4:
     # Dynamic Category List Logic
 
     if sel_year in ["2020", "2021"]:
-        cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-HV MINES"]
+        cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV MINES"]
+    elif sel_year in ["2022", "2023"]:
+        cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-MINES"]
     else:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-MV2", "SLT-HV"]
         
