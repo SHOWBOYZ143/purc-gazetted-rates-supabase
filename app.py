@@ -348,7 +348,34 @@ DEFAULT_TARIFFS = {
                 "SLT_HV_MINES": 69.598177
             }
         }
+    },
+    "2019": {
+    "QUARTER 3 (JUL)": {
+        "rates": {
+            "RES_LIFELINE": 0.307780,
+            "RES_B1": 0.617488,
+            "RES_B2": 0.801380,
+            "RES_B3": 0.890422,
+            "NONRES_B1": 0.753210,
+            "NONRES_B2": 0.753210,
+            "NONRES_B3": 0.801496,
+            "NONRES_B4": 1.264657,
+            "SLT_LV": 0.988591,
+            "SLT_MV": 0.750589,
+            "SLT_HV": 0.787776,
+            "SLT_HV_MINES": 2.491721
+        },
+        "service": {
+            "Lifeline": 2.13,
+            "Other": 7.038906,
+            "NonRes": 11.731511,
+            "SLT_LV": 46.926045,
+            "SLT_MV": 65.696464,
+            "SLT_HV": 65.696464,
+            "SLT_HV_MINES": 65.696464
+        }
     }
+}
 }
     
 
