@@ -301,7 +301,7 @@ DEFAULT_TARIFFS = {
     }
 
     }
-}
+
     
 
 def _supabase_headers(prefer: str = ""):
