@@ -475,7 +475,7 @@ def get_img_as_base64(file_path):
     return None
 
 def calculate_bill(year, quarter, category, kwh) -> BillResult:
-    if year not in ["2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
+    if year not in ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
     t = TARIFFS[year][quarter]
     if not t: return None
     
@@ -483,7 +483,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
     energy_total = 0.0
     service = 0.0
     
-    if year in ["2020", "2021"]:
+    if year in ["2019", "2020", "2021"]:
         if category == "Residential":
             if kwh <= 50:
                 energy_total = kwh * r["RES_LIFELINE"]
@@ -671,7 +671,7 @@ with c5:
     calc_mode = st.radio("Mode", ["Bill from kWh", "kWh from Bill"], horizontal=True, label_visibility="collapsed")
 
 # Logic Implementation
-valid_year = sel_year in ["2020", "2021", "2022", "2023", "2024", "2025", "2026"]
+valid_year = sel_year in ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]
 valid_selection = valid_year and sel_quarter != "NO DATA"
 
 if valid_selection:
