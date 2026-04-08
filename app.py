@@ -404,7 +404,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
     energy_total = 0.0
     service = 0.0
     
-    if year == "2021":
+    if year in ["2020", "2021"]:
         if category == "Residential":
             if kwh <= 50:
                 energy_total = kwh * r["RES_LIFELINE"]
@@ -454,7 +454,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
     # ----------------------------
     # 2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
     # ----------------------------
-    if year in ["2020", "2021", "2022", "2023"]:
+    elif year in ["2022", "2023"]:
         if category == "Residential":
             if kwh <= RES_LIFELINE_MAX:
                 energy_total = kwh * r["RES_LIFELINE"]
@@ -590,7 +590,7 @@ with c3:
 with c4:
     # Dynamic Category List Logic
 
-    if sel_year in ["2020", "2021", "2022", "2023"]:
+    if sel_year in ["2020", "2021"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-HV MINES"]
     else:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-MV2", "SLT-HV"]
