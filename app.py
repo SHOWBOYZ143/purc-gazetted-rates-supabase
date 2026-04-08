@@ -374,7 +374,7 @@ DEFAULT_TARIFFS = {
             "SLT_HV": 65.696464,
             "SLT_HV_MINES": 65.696464
         }
-    }
+
 },
     "QUARTER 4 (OCT)": {
     "rates": {
@@ -402,7 +402,7 @@ DEFAULT_TARIFFS = {
     }
 }
 }
-    
+}
 
 def _supabase_headers(prefer: str = ""):
     headers = {
