@@ -427,8 +427,8 @@ DEFAULT_TARIFFS = {
             "SLT_HV": 59.096029,
             "SLT_HV_MINES": 59.096029
         }
-    }
-},
+    },
+
     "QUARTER 2 (JUL)": {
     "rates": {
         "RES_LIFELINE": 0.276858,
@@ -455,7 +455,7 @@ DEFAULT_TARIFFS = {
     }
 }
 }
-
+}
 def _supabase_headers(prefer: str = ""):
     headers = {
         "apikey": SUPABASE_KEY,
