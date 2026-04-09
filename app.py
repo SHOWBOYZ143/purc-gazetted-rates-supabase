@@ -14,7 +14,8 @@ BLOCK_300 = 300.0
 BLOCK_600 = 600.0
 RES_LIFELINE_MAX = 30.0
 LEVY_RATE = 0.05
-TAX_RATE = 0.20
+TAX_RATE_STANDARD = 0.20
+TAX_RATE_REDUCED = 0.175
 
 @dataclass
 class BillResult:
@@ -576,11 +577,19 @@ def get_img_as_base64(file_path):
         with open(file_path, "rb") as f:
             return base64.b64encode(f.read()).decode()
     return None
+def get_tax_rate(year: str, quarter: str) -> float:
+    # VAT/NHIL/GETFund adjustment:
+    # 17.5% from Aug 2018 through 2022 tariffs, otherwise 20%.
+    if year in ["2019", "2020", "2021", "2022"]:
+        return TAX_RATE_REDUCED
+    if year == "2018" and quarter in ["QUARTER 3 (OCT)", "QUARTER 4 (OCT)", "QUARTER 4 (DEC)"]:
+        return TAX_RATE_REDUCED
+    return TAX_RATE_STANDARD
 
-def calculate_bill(year, quarter, category, kwh) -> BillResult:
-    if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
+if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
     t = TARIFFS[year][quarter]
     if not t: return None
+        
     
     r, s = t["rates"], t["service"]
     energy_total = 0.0
@@ -679,7 +688,8 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
 
     # Levies (5%) and Taxes (20% where applicable)
     levies = energy_total * LEVY_RATE
-    taxes = (energy_total + service) * TAX_RATE if category != "Residential" else 0.0
+    tax_rate = get_tax_rate(year, quarter)
+    taxes = (energy_total + service) * tax_rate if category != "Residential" else 0.0
     
     return BillResult(
         year, quarter, category,
