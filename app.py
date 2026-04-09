@@ -650,7 +650,7 @@ def get_levy_rate(year: str) -> float:
         return LEVY_RATE_10
     return LEVY_RATE_STANDARD
 
-def calculate_bill(year, quarter, category, kwh) -> BillResult:
+def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) -> BillResult:
     if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]:
         return None
     t = TARIFFS[year][quarter]
@@ -785,6 +785,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
 
     return BillResult(
         year, quarter, category,
+        energy_total, 0.0, service, levies + taxes,
         energy_total, demand_charge, service, levies + taxes,
         subtotal_before_tax + levies + taxes
     )
