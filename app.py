@@ -585,7 +585,8 @@ def get_tax_rate(year: str, quarter: str) -> float:
     if year == "2018" and quarter in ["QUARTER 3 (OCT)", "QUARTER 4 (OCT)", "QUARTER 4 (DEC)"]:
         return TAX_RATE_REDUCED
     return TAX_RATE_STANDARD
-
+    
+def calculate_bill(year, quarter, category, kwh) -> BillResult:
     if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
     t = TARIFFS[year][quarter]
     if not t: return None
