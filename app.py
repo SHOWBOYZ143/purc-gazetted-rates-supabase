@@ -789,11 +789,11 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
         subtotal_before_tax + levies + taxes
     )
 
-def calculate_kwh_from_bill(year, quarter, category, target) -> float:
+def calculate_kwh_from_bill(year, quarter, category, target, max_demand_kva: float = 0.0) -> float:
     low, high = 0.0, 50000.0
     for _ in range(25):
         mid = (low + high) / 2
-        res = calculate_bill(year, quarter, category, mid)
+        res = calculate_bill(year, quarter, category, mid, max_demand_kva)
         if res and res.total_payable < target:
             low = mid
         else:
