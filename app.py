@@ -16,6 +16,9 @@ RES_LIFELINE_MAX = 30.0
 LEVY_RATE = 0.05
 TAX_RATE_STANDARD = 0.20
 TAX_RATE_REDUCED = 0.175
+TAX_RATE_15 = 0.15
+TAX_RATE_12_5 = 0.125
+TAX_RATE_10 = 0.10
 
 @dataclass
 class BillResult:
@@ -579,11 +582,24 @@ def get_img_as_base64(file_path):
     return None
 
 def get_tax_rate(year: str, quarter: str) -> float:
-    # VAT/NHIL/GETFund adjustment:
-    # 17.5% from Aug 2018 through 2022 tariffs, otherwise 20%.
-    if year in ["2019", "2020", "2021", "2022"]:
+    # VAT/NHIL/GETFund adjustments by period.
+    try:
+        y = int(year)
+    except Exception:
+        return TAX_RATE_STANDARD
+
+    if 1998 <= y <= 1999:
+        return TAX_RATE_10
+    if 2000 <= y <= 2002:
+        return TAX_RATE_12_5
+    if 2003 <= y <= 2012:
+        return TAX_RATE_15
+    if 2013 <= y <= 2017:
         return TAX_RATE_REDUCED
-    if year == "2018" and quarter in ["QUARTER 3 (OCT)", "QUARTER 4 (OCT)", "QUARTER 4 (DEC)"]:
+    # 17.5% from Aug 2018 through 2022 tariffs.
+    if 2019 <= y <= 2022:
+        return TAX_RATE_REDUCED
+    if y == 2018 and quarter in ["QUARTER 3 (OCT)", "QUARTER 4 (OCT)", "QUARTER 4 (DEC)"]:
         return TAX_RATE_REDUCED
     return TAX_RATE_STANDARD
 
