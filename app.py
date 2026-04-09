@@ -789,11 +789,21 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
         subtotal_before_tax + levies + taxes
     )
 
+def calculate_bill_compat(year, quarter, category, kwh, max_demand_kva: float = 0.0):
+    """
+    Call calculate_bill in a way that is compatible with both 4-arg and 5-arg
+    calculate_bill signatures (to avoid runtime crashes during mixed deployments).
+    """
+    params = inspect.signature(calculate_bill).parameters
+    if "max_demand_kva" in params:
+        return calculate_bill(year, quarter, category, kwh, max_demand_kva)
+    return calculate_bill(year, quarter, category, kwh)
+
 def calculate_kwh_from_bill(year, quarter, category, target, max_demand_kva: float = 0.0) -> float:
     low, high = 0.0, 50000.0
     for _ in range(25):
         mid = (low + high) / 2
-        res = calculate_bill(year, quarter, category, mid, max_demand_kva)
+        res = calculate_bill_compat(year, quarter, category, mid, max_demand_kva)
         if res and res.total_payable < target:
             low = mid
         else:
