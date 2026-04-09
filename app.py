@@ -13,7 +13,9 @@ from typing import List
 BLOCK_300 = 300.0
 BLOCK_600 = 600.0
 RES_LIFELINE_MAX = 30.0
-LEVY_RATE = 0.05
+LEVY_RATE_STANDARD = 0.05
+LEVY_RATE_ZERO = 0.00
+LEVY_RATE_10 = 0.10
 TAX_RATE_STANDARD = 0.20
 TAX_RATE_REDUCED = 0.175
 TAX_RATE_15 = 0.15
@@ -603,6 +605,20 @@ def get_tax_rate(year: str, quarter: str) -> float:
         return TAX_RATE_REDUCED
     return TAX_RATE_STANDARD
 
+def get_levy_rate(year: str) -> float:
+    # Levy adjustments:
+    # 1998-2014 => 0%, 2015 => 10%, 2016+ => 5%.
+    try:
+        y = int(year)
+    except Exception:
+        return LEVY_RATE_STANDARD
+
+    if 1998 <= y <= 2014:
+        return LEVY_RATE_ZERO
+    if y == 2015:
+        return LEVY_RATE_10
+    return LEVY_RATE_STANDARD
+
 def calculate_bill(year, quarter, category, kwh) -> BillResult:
     if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]:
         return None
@@ -700,7 +716,8 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
             energy_total = kwh * r[rate_key]
             service = s["SLT"]
 
-    levies = energy_total * LEVY_RATE
+    levy_rate = get_levy_rate(year)
+    levies = energy_total * levy_rate
     tax_rate = get_tax_rate(year, quarter) if "get_tax_rate" in globals() else TAX_RATE_STANDARD
     taxes = (energy_total + service) * tax_rate if category != "Residential" else 0.0
 
