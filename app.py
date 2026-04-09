@@ -659,6 +659,7 @@ def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) ->
 
     r, s = t["rates"], t["service"]
     energy_total = 0.0
+    demand_charge = 0.0  # important: always initialize
     service = 0.0
 
     if year == "2017":
@@ -689,9 +690,6 @@ def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) ->
             service = s[key[1]]
             demand_charge = max(0.0, max_demand_kva) * r.get(key[2], 0.0)
 
-    # ----------------------------
-    # 2018-2021 LOGIC (RES: 0-50, 51-300, 301-600, 601+ | NONRES: 0-100, 101-300, 301-600, 601+)
-    # ----------------------------
     elif year in ["2018", "2019", "2020", "2021"]:
         if category == "Residential":
             if kwh <= 50:
@@ -726,9 +724,6 @@ def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) ->
             }.get(category, "SLT_LV")
             service = s[service_key]
 
-    # ----------------------------
-    # 2022-2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
-    # ----------------------------
     elif year in ["2022", "2023"]:
         if category == "Residential":
             if kwh <= RES_LIFELINE_MAX:
@@ -740,14 +735,12 @@ def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) ->
                 b3 = max(0, kwh - 600)
                 energy_total = (b1 * r["RES_B1"]) + (b2 * r["RES_B2"]) + (b3 * r["RES_B3"])
                 service = s["Other"]
-
         elif category == "Non-Residential":
             b1 = min(kwh, 300)
             b2 = min(max(0, kwh - 300), 300)
             b3 = max(0, kwh - 600)
             energy_total = (b1 * r["NONRES_B1"]) + (b2 * r["NONRES_B2"]) + (b3 * r["NONRES_B3"])
             service = s["NonRes"]
-
         else:
             rate_key = {
                 "SLT-LV": "SLT_LV",
@@ -760,7 +753,6 @@ def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) ->
             energy_total = kwh * r[rate_key]
             service = s["SLT"]
 
-    # 2024-2026 logic
     else:
         if category == "Residential":
             if kwh <= RES_LIFELINE_MAX:
@@ -785,10 +777,10 @@ def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) ->
 
     return BillResult(
         year, quarter, category,
-        energy_total, 0.0, service, levies + taxes,
         energy_total, demand_charge, service, levies + taxes,
         subtotal_before_tax + levies + taxes
     )
+    
 
 def calculate_bill_compat(year, quarter, category, kwh, max_demand_kva: float = 0.0):
     """
