@@ -28,6 +28,7 @@ class BillResult:
     quarter: str
     category: str
     energy_total: float
+    demand_charge: float
     service_charge: float
     levies_taxes_total: float
     total_payable: float
@@ -486,7 +487,37 @@ DEFAULT_TARIFFS = {
         "SLT_HV_MINES": 59.096029
     }
 }
-}
+},
+    "2017": {
+        "QUARTER 1 (JAN)": {
+            "rates": {
+                "RES_LIFELINE": 0.335600,
+                "RES_B1": 0.673300,
+                "RES_B2": 0.873800,
+                "RES_B3": 0.970900,
+                "NONRES_B1": 0.967900,
+                "NONRES_B2": 1.029900,
+                "NONRES_B3": 1.625100,
+                "SLT_LV": 1.008900,
+                "SLT_MV": 0.780900,
+                "SLT_HV": 0.717600,
+                "SLT_HV_MINES": 1.139700,
+                "SLT_LV_DEMAND": 59.096000,
+                "SLT_MV_DEMAND": 50.653700,
+                "SLT_HV_DEMAND": 50.653700,
+                "SLT_HV_MINES_DEMAND": 59.096000
+            },
+            "service": {
+                "Lifeline": 6.331700,
+                "Other": 6.331700,
+                "NonRes": 10.552900,
+                "SLT_LV": 42.211500,
+                "SLT_MV": 59.096000,
+                "SLT_HV": 59.096000,
+                "SLT_HV_MINES": 59.096000
+            }
+        }
+    }
 }
 def _supabase_headers(prefer: str = ""):
     headers = {
@@ -630,8 +661,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
     energy_total = 0.0
     service = 0.0
 
-    # 2018-2021 logic
-    if year in ["2018", "2019", "2020", "2021"]:
+    if year == "2017":
         if category == "Residential":
             if kwh <= 50:
                 energy_total = kwh * r["RES_LIFELINE"]
@@ -642,7 +672,37 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
                 b3 = max(0, kwh - 600)
                 energy_total = (50 * r["RES_LIFELINE"]) + (b1 * r["RES_B1"]) + (b2 * r["RES_B2"]) + (b3 * r["RES_B3"])
                 service = s["Other"]
+        elif category == "Non-Residential":
+            b1 = min(kwh, 300)
+            b2 = min(max(0, kwh - 300), 300)
+            b3 = max(0, kwh - 600)
+            energy_total = (b1 * r["NONRES_B1"]) + (b2 * r["NONRES_B2"]) + (b3 * r["NONRES_B3"])
+            service = s["NonRes"]
+        else:
+            key = {
+                "SLT-LV": ("SLT_LV", "SLT_LV", "SLT_LV_DEMAND"),
+                "SLT-MV": ("SLT_MV", "SLT_MV", "SLT_MV_DEMAND"),
+                "SLT-HV": ("SLT_HV", "SLT_HV", "SLT_HV_DEMAND"),
+                "SLT-HV MINES": ("SLT_HV_MINES", "SLT_HV_MINES", "SLT_HV_MINES_DEMAND"),
+            }.get(category, ("SLT_LV", "SLT_LV", "SLT_LV_DEMAND"))
+            energy_total = kwh * r[key[0]]
+            service = s[key[1]]
+            demand_charge = max(0.0, max_demand_kva) * r.get(key[2], 0.0)
 
+    # ----------------------------
+    # 2018-2021 LOGIC (RES: 0-50, 51-300, 301-600, 601+ | NONRES: 0-100, 101-300, 301-600, 601+)
+    # ----------------------------
+    elif year in ["2018", "2019", "2020", "2021"]:
+        if category == "Residential":
+            if kwh <= 50:
+                energy_total = kwh * r["RES_LIFELINE"]
+                service = s["Lifeline"]
+            else:
+                b1 = min(max(0, kwh - 50), 250)
+                b2 = min(max(0, kwh - 300), 300)
+                b3 = max(0, kwh - 600)
+                energy_total = (50 * r["RES_LIFELINE"]) + (b1 * r["RES_B1"]) + (b2 * r["RES_B2"]) + (b3 * r["RES_B3"])
+                service = s["Other"]
         elif category == "Non-Residential":
             b1 = min(kwh, 100)
             b2 = min(max(0, kwh - 100), 200)
@@ -650,7 +710,6 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
             b4 = max(0, kwh - 600)
             energy_total = (b1 * r["NONRES_B1"]) + (b2 * r["NONRES_B2"]) + (b3 * r["NONRES_B3"]) + (b4 * r["NONRES_B4"])
             service = s["NonRes"]
-
         else:
             rate_key = {
                 "SLT-LV": "SLT_LV",
@@ -667,7 +726,9 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
             }.get(category, "SLT_LV")
             service = s[service_key]
 
-    # 2022-2023 logic
+    # ----------------------------
+    # 2022-2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
+    # ----------------------------
     elif year in ["2022", "2023"]:
         if category == "Residential":
             if kwh <= RES_LIFELINE_MAX:
@@ -717,14 +778,15 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
             service = s["SLT"]
 
     levy_rate = get_levy_rate(year)
-    levies = energy_total * levy_rate
+    subtotal_before_tax = energy_total + demand_charge + service
+    levies = subtotal_before_tax * levy_rate
     tax_rate = get_tax_rate(year, quarter) if "get_tax_rate" in globals() else TAX_RATE_STANDARD
-    taxes = (energy_total + service) * tax_rate if category != "Residential" else 0.0
+    taxes = subtotal_before_tax * tax_rate if category != "Residential" else 0.0
 
     return BillResult(
         year, quarter, category,
-        energy_total, service, levies + taxes,
-        energy_total + service + levies + taxes
+        energy_total, demand_charge, service, levies + taxes,
+        subtotal_before_tax + levies + taxes
     )
 
 def calculate_kwh_from_bill(year, quarter, category, target) -> float:
@@ -791,7 +853,7 @@ with c3:
     val_input = st.number_input("Enter Value:", min_value=0.0, value=350.0)
 
 with c4:
-    if sel_year in ["2018", "2019", "2020", "2021"]:
+    if sel_year in ["2017", "2018", "2019", "2020", "2021"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV MINES"]
     elif sel_year in ["2022", "2023"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-MINES"]
@@ -803,16 +865,21 @@ with c5:
     st.markdown('<p style="margin-bottom:5px; color:black;">Preference</p>', unsafe_allow_html=True)
     calc_mode = st.radio("Mode", ["Bill from kWh", "kWh from Bill"], horizontal=True, label_visibility="collapsed")
 
-valid_year = sel_year in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]
+is_slt = category.startswith("SLT-")
+needs_max_demand = sel_year == "2017" and is_slt
+max_demand_input = 0.0
+if needs_max_demand:
+    max_demand_input = st.number_input("Maximum Demand (kVA):", min_value=0.0, value=0.0, step=1.0)
+
+valid_year = sel_year in ["2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]
 valid_selection = valid_year and sel_quarter != "NO DATA"
 
 if valid_selection:
     if calc_mode == "Bill from kWh":
-        res = calculate_bill(sel_year, sel_quarter, category, val_input)
-        display_val = val_input
+        res = calculate_bill(sel_year, sel_quarter, category, val_input, max_demand_input)
     else:
         display_val = calculate_kwh_from_bill(sel_year, sel_quarter, category, val_input)
-        res = calculate_bill(sel_year, sel_quarter, category, display_val)
+        res = calculate_bill(sel_year, sel_quarter, category, display_val, max_demand_input)
 
     r1, r2 = st.columns([1, 1])
     with r1:
@@ -828,6 +895,15 @@ if valid_selection:
             <span><b>ENERGY CHARGE</b> <small style='color:#666;'>(GH₵)</small></span>
             <span style='font-family:monospace; font-weight:700; font-size:1.1rem;'>{res.energy_total:,.2f}</span>
         </div><div class="divider"></div>""", unsafe_allow_html=True)
+
+        if res.demand_charge > 0:
+            st.markdown(f"""
+            <div style='display:flex; justify-content:space-between; padding: 8px 0; color: black;'>
+                <span><b>MAX DEMAND CHARGE</b> <small style='color:#666;'>(GH₵)</small></span>
+                <span style='font-family:monospace; font-weight:700; font-size:1.1rem;'>{res.demand_charge:,.2f}</span>
+            </div>
+            <div class="divider"></div>
+            """, unsafe_allow_html=True)
         st.markdown(f"""
         <div style='display:flex; justify-content:space-between; padding: 8px 0; color: black;'>
             <span><b>SERVICE CHARGE</b> <small style='color:#666;'>(GH₵)</small></span>
