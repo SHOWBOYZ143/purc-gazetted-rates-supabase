@@ -875,7 +875,7 @@ valid_year = sel_year in ["2017", "2018", "2019", "2020", "2021", "2022", "2023"
 valid_selection = valid_year and sel_quarter != "NO DATA"
 
 if valid_selection:
-     if calc_mode == "Bill from kWh":
+    if calc_mode == "Bill from kWh":
         res = calculate_bill(sel_year, sel_quarter, category, val_input, max_demand_input)
     else:
         display_val = calculate_kwh_from_bill(sel_year, sel_quarter, category, val_input)
