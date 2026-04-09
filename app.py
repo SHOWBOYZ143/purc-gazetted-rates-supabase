@@ -586,9 +586,9 @@ def get_tax_rate(year: str, quarter: str) -> float:
         return TAX_RATE_REDUCED
     return TAX_RATE_STANDARD
 
-if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
-   t = TARIFFS[year][quarter]
-   if not t: return None
+    if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
+    t = TARIFFS[year][quarter]
+    if not t: return None
         
     r, s = t["rates"], t["service"]
     energy_total = 0.0
