@@ -577,6 +577,7 @@ def get_img_as_base64(file_path):
         with open(file_path, "rb") as f:
             return base64.b64encode(f.read()).decode()
     return None
+
 def get_tax_rate(year: str, quarter: str) -> float:
     # VAT/NHIL/GETFund adjustment:
     # 17.5% from Aug 2018 through 2022 tariffs, otherwise 20%.
@@ -585,16 +586,19 @@ def get_tax_rate(year: str, quarter: str) -> float:
     if year == "2018" and quarter in ["QUARTER 3 (OCT)", "QUARTER 4 (OCT)", "QUARTER 4 (DEC)"]:
         return TAX_RATE_REDUCED
     return TAX_RATE_STANDARD
-    
+
 def calculate_bill(year, quarter, category, kwh) -> BillResult:
-    if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]: return None
+    if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]:
+        return None
     t = TARIFFS[year][quarter]
-    if not t: return None
-        
+    if not t:
+        return None
+
     r, s = t["rates"], t["service"]
     energy_total = 0.0
     service = 0.0
-    
+
+    # 2018-2021 logic
     if year in ["2018", "2019", "2020", "2021"]:
         if category == "Residential":
             if kwh <= 50:
@@ -606,6 +610,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
                 b3 = max(0, kwh - 600)
                 energy_total = (50 * r["RES_LIFELINE"]) + (b1 * r["RES_B1"]) + (b2 * r["RES_B2"]) + (b3 * r["RES_B3"])
                 service = s["Other"]
+
         elif category == "Non-Residential":
             b1 = min(kwh, 100)
             b2 = min(max(0, kwh - 100), 200)
@@ -613,6 +618,7 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
             b4 = max(0, kwh - 600)
             energy_total = (b1 * r["NONRES_B1"]) + (b2 * r["NONRES_B2"]) + (b3 * r["NONRES_B3"]) + (b4 * r["NONRES_B4"])
             service = s["NonRes"]
+
         else:
             rate_key = {
                 "SLT-LV": "SLT_LV",
@@ -629,47 +635,39 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
             }.get(category, "SLT_LV")
             service = s[service_key]
 
-    # ----------------------------
-    # 2022-2023 LOGIC (3 BLOCKS: 0-300, 301-600, 601+)
-    # ----------------------------
+    # 2022-2023 logic
     elif year in ["2022", "2023"]:
         if category == "Residential":
             if kwh <= RES_LIFELINE_MAX:
                 energy_total = kwh * r["RES_LIFELINE"]
                 service = s["Lifeline"]
             else:
-                # 3 Tiers for Res > Lifeline
                 b1 = min(kwh, 300)
-                b2 = min(max(0, kwh - 300), 300) # Next 300
-                b3 = max(0, kwh - 600)           # Remainder
-                
+                b2 = min(max(0, kwh - 300), 300)
+                b3 = max(0, kwh - 600)
                 energy_total = (b1 * r["RES_B1"]) + (b2 * r["RES_B2"]) + (b3 * r["RES_B3"])
                 service = s["Other"]
-        
+
         elif category == "Non-Residential":
-            # 3 Tiers for NonRes
             b1 = min(kwh, 300)
             b2 = min(max(0, kwh - 300), 300)
             b3 = max(0, kwh - 600)
-            
             energy_total = (b1 * r["NONRES_B1"]) + (b2 * r["NONRES_B2"]) + (b3 * r["NONRES_B3"])
             service = s["NonRes"]
-        
+
         else:
-            # Special 2023 SLT Categories
             rate_key = {
                 "SLT-LV": "SLT_LV",
                 "SLT-MV": "SLT_MV",
                 "SLT-HV": "SLT_HV",
                 "SLT-HV STEEL COMPANIES": "SLT_HV_STEEL",
                 "SLT-MINES": "SLT_HV_MINES",
-                "SLT-HV MINES": "SLT_HV_MINES"  # backward compatibility
+                "SLT-HV MINES": "SLT_HV_MINES"
             }.get(category, "SLT_LV")
             energy_total = kwh * r[rate_key]
             service = s["SLT"]
 
-    # ----------------------------    # 2024-2026 LOGIC (2 BLOCKS: 0-300, 301+)
-    # ----------------------------
+    # 2024-2026 logic
     else:
         if category == "Residential":
             if kwh <= RES_LIFELINE_MAX:
@@ -682,15 +680,14 @@ def calculate_bill(year, quarter, category, kwh) -> BillResult:
             energy_total = (min(kwh, BLOCK_300) * r["NONRES_B1"]) + (max(0, kwh - BLOCK_300) * r["NONRES_B2"])
             service = s["NonRes"]
         else:
-            rate_key = {"SLT-LV":"SLT_LV", "SLT-MV":"SLT_MV", "SLT-MV2":"SLT_MV2", "SLT-HV":"SLT_HV"}.get(category, "SLT_LV")
+            rate_key = {"SLT-LV": "SLT_LV", "SLT-MV": "SLT_MV", "SLT-MV2": "SLT_MV2", "SLT-HV": "SLT_HV"}.get(category, "SLT_LV")
             energy_total = kwh * r[rate_key]
             service = s["SLT"]
 
-    # Levies (5%) and Taxes (20% where applicable)
     levies = energy_total * LEVY_RATE
-    tax_rate = get_tax_rate(year, quarter)
+    tax_rate = get_tax_rate(year, quarter) if "get_tax_rate" in globals() else TAX_RATE_STANDARD
     taxes = (energy_total + service) * tax_rate if category != "Residential" else 0.0
-    
+
     return BillResult(
         year, quarter, category,
         energy_total, service, levies + taxes,
@@ -702,8 +699,10 @@ def calculate_kwh_from_bill(year, quarter, category, target) -> float:
     for _ in range(25):
         mid = (low + high) / 2
         res = calculate_bill(year, quarter, category, mid)
-        if res and res.total_payable < target: low = mid
-        else: high = mid
+        if res and res.total_payable < target:
+            low = mid
+        else:
+            high = mid
     return round(mid, 2)
 
 # ----------------------------
@@ -714,7 +713,6 @@ logo_b64 = get_img_as_base64("purc_logo.png")
 
 st.markdown("""
 <style>
-    /* Global Styles */
     header[data-testid="stHeader"] { display: none !important; }
     html, body, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
         background-color: #FFFFFF !important;
@@ -723,14 +721,10 @@ st.markdown("""
     .block-container { padding-top: 1rem !important; max-width: 1200px !important; margin: auto; background-color: #FFFFFF !important;}
     h1 { text-align: center; font-weight: 950; color: black; margin-top: 5px; margin-bottom: 0px;}
     .sub-header { text-align: center; color: #38bdf8 !important; font-weight: 800; margin-top: -10px; margin-bottom: 30px;}
-    
-    /* Input Labels and Radio Text */
     [data-testid="stWidgetLabel"] p, .stRadio label p, label, .stSelectbox p, div[data-testid="stMarkdownContainer"] p {
         color: black !important;
         font-weight: 700 !important;
     }
-
-    /* Input Container Styling (Light Ash Windows) */
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
         background-color: #E0E0E0 !important;
         border: 1px solid #ccc !important;
@@ -742,20 +736,16 @@ st.markdown("""
         font-weight: 500 !important;
     }
     div[data-baseweb="select"] svg { fill: black !important; }
-    
-    /* Custom divider */
     .divider { border-bottom: 1px solid #eee; margin: 2px 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# Dashboard Top Section
 if logo_b64:
     st.markdown(f'<div style="text-align: center;"><img src="data:image/png;base64,{logo_b64}" width="220"></div>', unsafe_allow_html=True)
 
 st.markdown("<h1>PUBLIC UTILITIES REGULATORY COMMISSION</h1>", unsafe_allow_html=True)
 st.markdown("<p class='sub-header'>GAZETTED TARIFFS</p>", unsafe_allow_html=True)
 
-# Input Controls Row
 c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
     sel_year = st.selectbox("Tariff Control Period:", sorted(list(TARIFFS.keys()), reverse=True))
@@ -768,22 +758,18 @@ with c3:
     val_input = st.number_input("Enter Value:", min_value=0.0, value=350.0)
 
 with c4:
-    # Dynamic Category List Logic
-
     if sel_year in ["2018", "2019", "2020", "2021"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV MINES"]
     elif sel_year in ["2022", "2023"]:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-HV", "SLT-HV STEEL COMPANIES", "SLT-MINES"]
     else:
         cat_options = ["Residential", "Non-Residential", "SLT-LV", "SLT-MV", "SLT-MV2", "SLT-HV"]
-        
     category = st.selectbox("Customer Category:", cat_options)
 
 with c5:
     st.markdown('<p style="margin-bottom:5px; color:black;">Preference</p>', unsafe_allow_html=True)
     calc_mode = st.radio("Mode", ["Bill from kWh", "kWh from Bill"], horizontal=True, label_visibility="collapsed")
 
-# Logic Implementation
 valid_year = sel_year in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"]
 valid_selection = valid_year and sel_quarter != "NO DATA"
 
@@ -795,46 +781,29 @@ if valid_selection:
         display_val = calculate_kwh_from_bill(sel_year, sel_quarter, category, val_input)
         res = calculate_bill(sel_year, sel_quarter, category, display_val)
 
-    # Result Display Row
     r1, r2 = st.columns([1, 1])
     with r1:
         title = "TOTAL BILL (GHS)" if calc_mode == "Bill from kWh" else "REQUIRED CONSUMPTION (kWh)"
         v = res.total_payable if calc_mode == "Bill from kWh" else display_val
-        
         st.markdown(f'<div style="font-size: 20px; font-weight: 800; color: #ef4444; margin-top: 30px; margin-bottom: 10px;">{title}</div>', unsafe_allow_html=True)
         st.markdown(f'<div style="font-size: 4.5rem; font-weight: 950; color: black; line-height: 1;">{v:,.2f}</div>', unsafe_allow_html=True)
 
     with r2:
         st.markdown("<p style='font-weight:950; border-bottom:2px solid #38bdf8; font-size:1.2rem; padding-bottom:5px; margin-top:20px; color: black;'>🧾 BILL BREAKDOWN</p>", unsafe_allow_html=True)
-        
-        # Consolidation Logic
-        # Item 1: Energy (Combined)
         st.markdown(f"""
         <div style='display:flex; justify-content:space-between; padding: 8px 0; color: black;'>
             <span><b>ENERGY CHARGE</b> <small style='color:#666;'>(GH₵)</small></span>
             <span style='font-family:monospace; font-weight:700; font-size:1.1rem;'>{res.energy_total:,.2f}</span>
-        </div>
-        <div class="divider"></div>
-        """, unsafe_allow_html=True)
-        
-        # Item 2: Service Charge
+        </div><div class="divider"></div>""", unsafe_allow_html=True)
         st.markdown(f"""
         <div style='display:flex; justify-content:space-between; padding: 8px 0; color: black;'>
             <span><b>SERVICE CHARGE</b> <small style='color:#666;'>(GH₵)</small></span>
             <span style='font-family:monospace; font-weight:700; font-size:1.1rem;'>{res.service_charge:,.2f}</span>
-        </div>
-        <div class="divider"></div>
-        """, unsafe_allow_html=True)
-        
-        # Item 3: Levies and Taxes (Combined)
+        </div><div class="divider"></div>""", unsafe_allow_html=True)
         st.markdown(f"""
         <div style='display:flex; justify-content:space-between; padding: 8px 0; color: black;'>
             <span><b>LEVIES AND TAXES</b> <small style='color:#666;'>(GH₵)</small></span>
             <span style='font-family:monospace; font-weight:700; font-size:1.1rem;'>{res.levies_taxes_total:,.2f}</span>
-        </div>
-        <div class="divider"></div>
-        """, unsafe_allow_html=True)
-
+        </div><div class="divider"></div>""", unsafe_allow_html=True)
 else:
     st.markdown("<br><br><h2 style='text-align:center; color:black;'>No data for selected year yet.</h2>", unsafe_allow_html=True)
-
