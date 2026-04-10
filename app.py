@@ -1,6 +1,7 @@
 import streamlit as st
 import base64
 import os
+import inspect
 import json
 import urllib.request
 import urllib.parse
@@ -651,7 +652,7 @@ def get_levy_rate(year: str) -> float:
     return LEVY_RATE_STANDARD
 
 def calculate_bill(year, quarter, category, kwh, max_demand_kva: float = 0.0) -> BillResult:
-    if year not in ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]:
+    if year not in ["2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"] or quarter not in TARIFFS[year]:
         return None
     t = TARIFFS[year][quarter]
     if not t:
@@ -796,11 +797,9 @@ def calculate_kwh_from_bill(year, quarter, category, target, max_demand_kva: flo
     low, high = 0.0, 50000.0
     for _ in range(25):
         mid = (low + high) / 2
-        res = calculate_bill_compat(year, quarter, category, mid, max_demand_kva)
-        if res and res.total_payable < target:
-            low = mid
-        else:
-            high = mid
+        res = calculate_bill(year, quarter, category, mid, max_demand_kva)
+        if res and res.total_payable < target: low = mid
+        else: high = mid
     return round(mid, 2)
 
 # ----------------------------
@@ -878,12 +877,16 @@ valid_year = sel_year in ["2017", "2018", "2019", "2020", "2021", "2022", "2023"
 valid_selection = valid_year and sel_quarter != "NO DATA"
 
 if valid_selection:
+    display_val = val_input
     if calc_mode == "Bill from kWh":
-        res = calculate_bill(sel_year, sel_quarter, category, val_input, max_demand_input)
+        res = calculate_bill(sel_year, sel_quarter, category, val_input)
     else:
         display_val = calculate_kwh_from_bill(sel_year, sel_quarter, category, val_input)
-        res = calculate_bill(sel_year, sel_quarter, category, display_val, max_demand_input)
+        res = calculate_bill(sel_year, sel_quarter, category, display_val)
 
+    if not res:
+        st.error("No tariff data available for the selected year/quarter/category combination.")
+        st.stop()
     r1, r2 = st.columns([1, 1])
     with r1:
         title = "TOTAL BILL (GHS)" if calc_mode == "Bill from kWh" else "REQUIRED CONSUMPTION (kWh)"
