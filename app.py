@@ -517,7 +517,64 @@ DEFAULT_TARIFFS = {
                 "SLT_HV": 59.096000,
                 "SLT_HV_MINES": 59.096000
             }
-        }
+        },
+        "QUARTER 2 (APR)": {
+    "rates": {
+        "RES_LIFELINE": 0.3356,
+        "RES_B1": 0.6733,
+        "RES_B2": 0.8738,
+        "RES_B3": 0.9709,
+        "NONRES_B1": 0.9679,
+        "NONRES_B2": 1.0299,
+        "NONRES_B3": 1.6251,
+        "SLT_LV": 1.0089,
+        "SLT_MV": 0.7809,
+        "SLT_HV": 0.7176,
+        "SLT_HV_MINES": 1.1397,
+        "SLT_LV_DEMAND": 59.0960,
+        "SLT_MV_DEMAND": 50.6537,
+        "SLT_HV_DEMAND": 50.6537,
+        "SLT_HV_MINES_DEMAND": 59.0960
+    },
+    "service": {
+        "Lifeline": 6.3317,
+        "Other": 6.3317,
+        "NonRes": 10.5529,
+        "SLT_LV": 42.2115,
+        "SLT_MV": 59.0960,
+        "SLT_HV": 59.0960,
+        "SLT_HV_MINES": 59.0960
+    }
+},
+
+"QUARTER 3 (JUL)": {
+    "rates": {
+        "RES_LIFELINE": 0.3356,
+        "RES_B1": 0.6733,
+        "RES_B2": 0.8738,
+        "RES_B3": 0.9709,
+        "NONRES_B1": 0.9679,
+        "NONRES_B2": 1.0299,
+        "NONRES_B3": 1.6251,
+        "SLT_LV": 1.0089,
+        "SLT_MV": 0.7809,
+        "SLT_HV": 0.7176,
+        "SLT_HV_MINES": 1.1397,
+        "SLT_LV_DEMAND": 59.0960,
+        "SLT_MV_DEMAND": 50.6537,
+        "SLT_HV_DEMAND": 50.6537,
+        "SLT_HV_MINES_DEMAND": 59.0960
+    },
+    "service": {
+        "Lifeline": 6.3317,
+        "Other": 6.3317,
+        "NonRes": 10.5529,
+        "SLT_LV": 42.2115,
+        "SLT_MV": 59.0960,
+        "SLT_HV": 59.0960,
+        "SLT_HV_MINES": 59.0960
+    }
+}
     }
 }
 def _supabase_headers(prefer: str = ""):
